@@ -14,7 +14,7 @@ namespace Gym_Booking_Manager.Schedules
             this.timeFrom = timeFrom;
             this.timeTo = timeTo;
         }
-        public static void ViewScheduleMenu(int ID)
+        public static void ViewScheduleMenu(User user)
         {
             ConsoleKeyInfo keyPressed;
 
@@ -25,7 +25,7 @@ namespace Gym_Booking_Manager.Schedules
             if (keyPressed.Key == ConsoleKey.D1 || keyPressed.Key == ConsoleKey.NumPad1)
             {
                 Task.Delay(250).Wait();
-                SelectScheduleWeek(ID);
+                SelectScheduleWeek(user);
             }
             else if (keyPressed.Key == ConsoleKey.D2 || keyPressed.Key == ConsoleKey.NumPad2)
             {
@@ -43,13 +43,13 @@ namespace Gym_Booking_Manager.Schedules
                 Task.Delay(500).Wait();
             }
         }
-        private static void SelectScheduleWeek(int ID)
+        private static void SelectScheduleWeek(User user)
         {
             int currentYear = ISOWeek.GetYear(DateTime.Now);
             int currentWeek = ISOWeek.GetWeekOfYear(DateTime.Now);
             bool escape = false;
 
-            ViewScheduleWeek(currentYear, currentWeek, ID);
+            ViewScheduleWeek(currentYear, currentWeek, user);
 
             while (!escape)
             {
@@ -60,7 +60,7 @@ namespace Gym_Booking_Manager.Schedules
                         try
                         {
                             currentWeek -= 1;
-                            ViewScheduleWeek(currentYear, currentWeek, ID);
+                            ViewScheduleWeek(currentYear, currentWeek, user);
                         }
                         catch (System.ArgumentOutOfRangeException)
                         {
@@ -73,7 +73,7 @@ namespace Gym_Booking_Manager.Schedules
                         try
                         {
                             currentWeek += 1;
-                            ViewScheduleWeek(currentYear, currentWeek, ID);
+                            ViewScheduleWeek(currentYear, currentWeek, user);
                         }
                         catch (System.ArgumentOutOfRangeException)
                         {
@@ -83,7 +83,7 @@ namespace Gym_Booking_Manager.Schedules
                         }
                         break;
                     case ConsoleKey.B:
-                        Activity.BookActivity(currentWeek, ID);
+                        Activity.BookActivity(currentWeek, user);
                         break;
                     case ConsoleKey.D:
                         Console.WriteLine("\n>> Select a day to view:");
@@ -97,7 +97,7 @@ namespace Gym_Booking_Manager.Schedules
                         Console.WriteLine();
 
                         keyPressed = Console.ReadKey(true);
-                        ViewScheduleDay(currentYear, currentWeek, keyPressed, ID);
+                        ViewScheduleDay(currentYear, currentWeek, keyPressed);
                         break;
                     case ConsoleKey.Escape:
                         escape = true;
@@ -111,11 +111,11 @@ namespace Gym_Booking_Manager.Schedules
         {
 
         }
-        private static void ViewScheduleWeek(int year, int week, int ID)
+        private static void ViewScheduleWeek(int year, int week,User user)
         {
             Customer customer=new Customer();
-            if (User.users[ID] is Customer)
-                    customer = (Customer)User.users[ID];
+            if (user is Customer)
+                    customer = (Customer)user;
             // Filtering Reservation.reservations list based on weekNr of date.timeFrom
             List<Activity> weekActivities = Activity.activities.Where(a => ISOWeek.GetWeekOfYear(a.date.timeFrom) == week).ToList();
 
@@ -199,7 +199,7 @@ namespace Gym_Booking_Manager.Schedules
             if(customer.isMember==true)Console.WriteLine($"\n{"<< [LEFT.ARROW](Prev. Week)",-32}{"[V](View Act.)",-20}{"[B](Book Act.)",-20}{"[D](View Day)",-18}{"[ESC](Cancel)",-18}{"[RIGHT ARROW](Next Week) >>",-25}");
             else if (customer.isMember == false) Console.WriteLine($"\n{"<< [LEFT.ARROW](Prev. Week)",-32}{"[V](View Act.)",-20}{"[D](View Day)",-18}{"[ESC](Cancel)",-18}{"[RIGHT ARROW](Next Week) >>",-25}");
         }
-        private static void ViewScheduleDay(int year, int week, ConsoleKeyInfo key, int ID)
+        private static void ViewScheduleDay(int year, int week, ConsoleKeyInfo key)
         {
             List<Activity> dayReservations = Activity.activities.Where(activity => ISOWeek.GetWeekOfYear(activity.date.timeFrom) == week).ToList();
             DayOfWeek dayOfWeek = DayOfWeek.Monday;
@@ -234,7 +234,7 @@ namespace Gym_Booking_Manager.Schedules
         rerun:
             while (run == true)
             {
-                Console.WriteLine("Enter a date and time of start of lending (in the format yyyy-MM-dd HH):");
+                Console.WriteLine("Enter a date and time of start of lending/activity (in the format yyyy-MM-dd HH):");
                 input = Console.ReadLine() + ":00:00";
                 if (DateTime.TryParse(input, out date[0]))
                 {
@@ -248,7 +248,7 @@ namespace Gym_Booking_Manager.Schedules
             run = true;
             while (run == true)
             {
-                Console.WriteLine("Enter a date and time of end of lending (in the format yyyy-MM-dd HH):");
+                Console.WriteLine("Enter a date and time that the lending/activity stops (in the format yyyy-MM-dd HH):");
                 input = Console.ReadLine() + ":00:00";
                 if (DateTime.TryParse(input, out date[1]))
                 {

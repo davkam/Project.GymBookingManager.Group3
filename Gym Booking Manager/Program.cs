@@ -7,6 +7,7 @@ using Gym_Booking_Manager.Users;
 
 namespace Gym_Booking_Manager
 {
+
     public class Program
     {
         // PUBLIC LOGGER INSTANTIATION:
@@ -23,12 +24,12 @@ namespace Gym_Booking_Manager
         }
         static void RunGBM()
         {
+            //Test((Customer)User.users[3]);
             bool shutdown = false;
             int userID;
             User? currentUser;            
-            do
-            {
-                Console.Clear();                
+            do            {
+                Console.Clear();
                 Console.WriteLine("<< GYM BOOKING MANAGER >>\n");
                 Console.WriteLine(">> Press any key to log in, or [ESC] to quit!");
                 ConsoleKeyInfo keyInfo = Console.ReadKey(true);
@@ -54,6 +55,7 @@ namespace Gym_Booking_Manager
                     }
                 }
             } while (!shutdown);
+
         }
     }
 }

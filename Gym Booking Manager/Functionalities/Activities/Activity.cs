@@ -97,17 +97,23 @@ namespace Gym_Booking_Manager.Activities
             getActivityID++;
             return id;    
         }
-        static void ChooseReservables(List<int> reservableToList)
+        static Staff ChooseReservables(List<int> reservableToList)
         {
+            Staff Instructor = new Staff();
             int PTcheck = 0;
-            while (true)
+            bool PTavailable = false;
+            for (int i = 0; i < reservableToList.Count(); i++)
+            {
+                if(Reservable.reservables[reservableToList[i]] is PTrainer)PTavailable=true;
+            }            
+            while (PTavailable)
             {
                 Console.WriteLine("Available Equipment/PT: ");
                 for (int i = 0; i < reservableToList.Count(); i++)
                 {
                     Console.WriteLine($"{i + 1} {Reservable.reservables[reservableToList[i]].name}");
                 }
-                Console.WriteLine("Type in which Equipment/PT you wish to reserve (number) type 0 to exit when done with selections (you must pick at least on PT): ");
+                Console.WriteLine("Type in which Equipment/PT you wish to reserve (number) type 0 to exit when done with selections (you must pick at least on PT, first one selected will be responsible for the activity): ");
                 string input = Console.ReadLine();
                 bool isNumber;
                 isNumber = int.TryParse(input, out int number);
@@ -117,6 +123,11 @@ namespace Gym_Booking_Manager.Activities
                     Reservation.reservations[Reservation.reservations.Count() - 1].reservables.Add(Reservable.reservables[reservableToList[number - 1]]);
                     Console.WriteLine("You have booked " + Reservable.reservables[reservableToList[number - 1]].name);
                     reservableToList.RemoveAt(number - 1);
+                    if (PTcheck == 1)
+                    {
+                        PTrainer ptrainer = (PTrainer)Reservable.reservables[reservableToList[number - 1]];
+                        Instructor = ptrainer.instructor;
+                    }
                 }
                 else if (number == 0 || PTcheck > 0) break;
                 else if (number == 0) Console.WriteLine("You must select at least one PT!");
@@ -125,11 +136,17 @@ namespace Gym_Booking_Manager.Activities
                     Console.WriteLine("Incorrect input!");
                 }
             }
-            Reservation.SaveReservations();
+            if (PTavailable == true)
+            {
+                Console.WriteLine("Reservation saved");
+                Reservation.SaveReservations();
+            }
+            else Console.WriteLine("No PT available!");
+            return Instructor;
         }
-        public static void NewActivity(int idStaff)
+        public static void NewActivity(Staff staff)
         {
-            int id = GetActivityID(); string Name; string Description; bool Open = true; int participantsNo = 0; Staff Instructor = User.users[idStaff] as Staff; List<Customer>? Participants=new List<Customer>();
+            int id = GetActivityID(); string Name; string Description; bool Open = true; int participantsNo = 0; Staff Instructor = new Staff(); List<Customer>? Participants=new List<Customer>();
             bool overlap = false;
             List<int> reservableToList = new List<int>();
             DateTime[] date = new DateTime[2];
@@ -148,7 +165,7 @@ namespace Gym_Booking_Manager.Activities
                 }
                 if (!overlap && Reservable.reservables[i] is Space) reservableToList.Add(Reservable.reservables[i].id);
             }
-            ChooseSpace(idStaff, date, reservableToList);
+            ChooseSpace(staff, date, reservableToList);
             reservableToList.Clear();
             for (int i = 0; i < Reservable.reservables.Count(); i++)
             {
@@ -164,7 +181,7 @@ namespace Gym_Booking_Manager.Activities
                 }
                 if (!overlap && Reservable.reservables[i] is not Space) reservableToList.Add(Reservable.reservables[i].id);
             }
-            ChooseReservables(reservableToList);
+            Instructor=ChooseReservables(reservableToList);
             Console.Write("Enter name of activity: ");
             Name = Console.ReadLine();
             Console.WriteLine();
@@ -197,7 +214,7 @@ namespace Gym_Booking_Manager.Activities
             Activity.activities.Add(new Activity(id, Name, Description, Open, participantsNo, Instructor, datee, Reservationn, Participants));
             SaveActivities();
         }
-        static void ChooseSpace(int idStaff, DateTime[] date, List<int> reservableToList)
+        static void ChooseSpace(Staff staff, DateTime[] date, List<int> reservableToList)
         {
             List<Reservable> list = new List<Reservable>();
             Console.WriteLine("Available Spaces: ");
@@ -216,7 +233,7 @@ namespace Gym_Booking_Manager.Activities
                 {
                     list.Add(Reservable.reservables[reservableToList[number - 1]]);
                     Console.WriteLine("You have booked " + Reservable.reservables[reservableToList[number - 1]].name);
-                    Reservation.reservations.Add(new Reservation(Reservation.GetReservationID(), User.users[idStaff], new Schedule(date[0], date[1]), list));
+                    Reservation.reservations.Add(new Reservation(Reservation.GetReservationID(), staff, new Schedule(date[0], date[1]), list));
                     Reservation.SaveReservations();
                     break;
                 }
@@ -250,9 +267,9 @@ namespace Gym_Booking_Manager.Activities
             else Console.WriteLine("Incorrect input");
             Thread.Sleep(2000);
         }
-        public static void BookActivity(int week, int ID)
+        public static void BookActivity(int week, User user)
         {
-            Customer customer = (Customer)User.users[ID];
+            Customer customer = (Customer)user;
             bool printedSomething = false;
             List<Activity> weekActivities = Activity.activities.Where(a => ISOWeek.GetWeekOfYear(a.date.timeFrom) == week).ToList();
             Console.WriteLine("Which activity do you want to book? (type in the number from the listed activites)");
@@ -260,16 +277,16 @@ namespace Gym_Booking_Manager.Activities
             int.TryParse(input, out var which);
             foreach (Activity a in weekActivities)
             {
-                if (a.id == which && a.limit > a.participants.Count() && customer.subStart < a.date.timeFrom && customer.subEnd > a.date.timeTo && Activity.activities[a.id].participants.Contains(User.users[ID]) == false)
+                if (a.id == which && a.limit > a.participants.Count() && customer.subStart < a.date.timeFrom && customer.subEnd > a.date.timeTo && Activity.activities[a.id].participants.Contains(customer) == false)
                 {
                     Console.WriteLine($"{a.name} booked!");
                     Activity.activities[a.id].participants.Add(customer);
                 }
-                else if (a.id == which && a.limit == a.participants.Count() && customer.subStart < a.date.timeFrom && customer.subEnd > a.date.timeTo && Activity.activities[a.id].participants.Contains(User.users[ID]) == false)
+                else if (a.id == which && a.limit == a.participants.Count() && customer.subStart < a.date.timeFrom && customer.subEnd > a.date.timeTo && Activity.activities[a.id].participants.Contains(customer) == false)
                 {
                     Console.WriteLine("The activity is fully booked");
                 }
-                else if (a.id == which && Activity.activities[a.id].participants.Contains(User.users[ID]) == true)
+                else if (a.id == which && Activity.activities[a.id].participants.Contains(customer) == true)
                 {
                     Console.WriteLine("You are already booked to this activity");
                 }
@@ -280,7 +297,7 @@ namespace Gym_Booking_Manager.Activities
             }
             Activity.SaveActivities();
         }
-        public static void ActivityCancel(int ID)
+        public static void ActivityCancel(Customer customer)
         {
             int findSpotInList=0;
             int result;
@@ -289,7 +306,7 @@ namespace Gym_Booking_Manager.Activities
             Console.WriteLine("You are booked for the following activities: ");
             foreach (Activity a in Activity.activities)
             {
-                if (a.participants.Contains(User.users[ID]))
+                if (a.participants.Contains(customer))
                 {
                     Console.WriteLine(counter+" "+a.name+" on "+a.date.timeFrom);
                     whichActivity.Add(a.id);
@@ -305,9 +322,9 @@ namespace Gym_Booking_Manager.Activities
             {
                 Console.WriteLine("You have removed yourself from activity: " + activities[whichActivity[result-1]].name);
                 
-                foreach(Customer customer in activities[whichActivity[result - 1]].participants)
+                foreach(Customer customerr in activities[whichActivity[result - 1]].participants)
                 {
-                    if (customer.id == ID) break;
+                    if (customerr == customer) break;
                     findSpotInList++;
                 }
                 activities[whichActivity[result - 1]].participants.RemoveAt(findSpotInList);
@@ -315,9 +332,9 @@ namespace Gym_Booking_Manager.Activities
             }
             else Console.WriteLine("Incorrect selection, bye!");
         }
-        public static void ActivityView(int ID)
+        public static void ActivityView(User user)
         {
-            Schedule.ViewScheduleMenu(ID);
+            Schedule.ViewScheduleMenu(user);
         }
     }
 }
